@@ -1,6 +1,31 @@
 class Solution {
 public:
+    vector<int> parent;
+    vector<int> rank;
+    int find(int x) {
+        if (parent[x] == x)
+            return x;
+        return parent[x] = find(parent[x]);
+    }
+    void Union(int x, int y) {
+        int parent_x = find(x);
+        int parent_y = find(y);
+        if (parent_x == parent_y)
+            return;
+        if (rank[parent_x] > rank[parent_y]) {
+            parent[parent_y] = parent_x;
+        } else if (rank[parent_y] > rank[parent_x]) {
+            parent[parent_x] = parent_y;
+        } else {
+            rank[parent_x]++;
+            parent[parent_y] = parent_x;
+        }
+        return;
+    }
     vector<int> findAllPeople(int n, vector<vector<int>>& meetings, int firstPerson) {
+        parent.resize(n);
+        rank.resize(n, 0);
+        for (int i = 0; i < n; i++) parent[i] = i;
         vector<bool> knowsecret(n , false);
         knowsecret[0] = true ;
         knowsecret[firstPerson] = true ;
@@ -8,43 +33,40 @@ public:
             return a[2] < b[2];
         });
         unordered_set<int> nodes ;
+        unordered_set<int> ans ;
+        ans.insert(0);
+        ans.insert(firstPerson);
         for(int i = 0 ; i < meetings.size() ; i++){
-            unordered_map<int, vector<int>> adj;
             int time = meetings[i][2];
             int ptr = i ;
             while(ptr < meetings.size() && meetings[ptr][2] == time){
-                adj[meetings[ptr][0]].push_back(meetings[ptr][1]);
-                adj[meetings[ptr][1]].push_back(meetings[ptr][0]);
-                nodes.insert(meetings[ptr][0]);
-                nodes.insert(meetings[ptr][1]);
+                int u = meetings[ptr][0] , v = meetings[ptr][1] ;
+                nodes.insert(u);
+                nodes.insert(v);
+                Union(u,v);
                 ptr++;
             }
             ptr-- ; i = ptr;
-            queue<int> q ;
-            unordered_set<int> visited;
+            unordered_set<int> comp;
             for(auto &x : nodes){
-                if(knowsecret[x]){
-                    q.push(x);
-                } 
+                if(knowsecret[x]) comp.insert(find(x));
             }
-            while(!q.empty()){
-                int u = q.front();
-                q.pop();
-                if (visited.count(u)) continue;
-                visited.insert(u);
-                for(auto &v : adj[u]){
-                    if(!visited.count(v)){
-                        if(knowsecret[u]) {
-                            knowsecret[v] = true;
-                            q.push(v);
-                        }
-                    }
+            for(auto &x : nodes){
+                if(comp.count(find(x))){
+                    knowsecret[x] = true;
+                    ans.insert(x);
+                }
+            }
+            for (auto &x : nodes) {
+                if (!comp.count(find(x))) {
+                    parent[x] = x;
+                    rank[x] = 0;
                 }
             }
             nodes.clear();
         }
-        vector<int> ans ;
-        for(int i = 0 ; i < n ; i++) if(knowsecret[i]) ans.push_back(i);
-        return ans ;
+        vector<int> res;
+        for(auto &x : ans) res.push_back(x);
+        return res ;
     }
 };
