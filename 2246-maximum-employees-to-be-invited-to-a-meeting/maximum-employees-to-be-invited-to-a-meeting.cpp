@@ -1,59 +1,75 @@
 class Solution {
 public:
-    int maximumInvitations(vector<int>& favorite) {
-        int n = favorite.size();
-        vector<vector<int>> reversedGraph(n);
-        for (int person = 0; person < n; ++person) {
-            reversedGraph[favorite[person]].push_back(person);
-        }
+    int BFS(int start, unordered_map<int, vector<int>>& adj, vector<bool>& visited) {
+        queue<pair<int, int>> que; 
+        que.push({start, 0});
+        int maxDistance = 0;
 
-        auto bfs = [&](int startNode, unordered_set<int>& visitedNodes) -> int {
-            queue<pair<int, int>> q;
-            q.push({startNode, 0});
-            int maxDistance = 0;
-            while (!q.empty()) {
-                auto [currentNode, currentDistance] = q.front();
-                q.pop();
-                for (int neighbor : reversedGraph[currentNode]) {
-                    if (visitedNodes.count(neighbor)) continue;
-                    visitedNodes.insert(neighbor);
-                    q.push({neighbor, currentDistance + 1});
-                    maxDistance = max(maxDistance, currentDistance + 1);
+        while(!que.empty()) {
+            auto[currNode, dist] = que.front();
+            que.pop();
+
+            for(auto &ngbr : adj[currNode]) {
+                if(!visited[ngbr]) {
+                    visited[ngbr] = true;
+                    que.push({ngbr, dist+1});
+                    maxDistance = max(maxDistance, dist+1);
                 }
             }
-            return maxDistance;
-        };
+        }
 
-        int longestCycle = 0, twoCycleInvitations = 0;
+        return maxDistance;
+    }
+
+    int maximumInvitations(vector<int>& favorite) {
+        int n = favorite.size();
+        unordered_map<int, vector<int>> adj;
+
+        for(int i = 0; i < n; i++) {
+            int u = i;
+            int v = favorite[i];
+            adj[v].push_back(u);
+        }
+
+        int longestCycleEmplCount = 0;
+        int happyCoupleEmplCount  = 0; 
+
         vector<bool> visited(n, false);
 
-        for (int person = 0; person < n; ++person) {
-            if (!visited[person]) {
-                unordered_map<int, int> visitedPersons;
-                int current = person;
-                int distance = 0;
-                while (true) {
-                    if (visited[current]) break;
-                    visited[current] = true;
-                    visitedPersons[current] = distance++;
-                    int nextPerson = favorite[current];
-                    if (visitedPersons.count(nextPerson)) {  // Cycle detected
-                        int cycleLength = distance - visitedPersons[nextPerson];
-                        longestCycle = max(longestCycle, cycleLength);
-                        if (cycleLength == 2) {
-                            unordered_set<int> visitedNodes = {current,
-                                                               nextPerson};
-                            twoCycleInvitations +=
-                                2 + bfs(nextPerson, visitedNodes) +
-                                bfs(current, visitedNodes);
+        for(int i = 0; i < n; i++) {
+
+            if(!visited[i]) {
+                
+                unordered_map<int, int> mp;
+
+                int currNode      = i;
+                int currNodeCount = 0;
+
+                while(!visited[currNode]) { 
+                    visited[currNode] = true;
+                    mp[currNode] = currNodeCount;
+
+                    int nextNode = favorite[currNode];
+                    currNodeCount += 1;
+
+                    if(mp.count(nextNode)) { 
+                        int cycleLength = currNodeCount - mp[nextNode];
+                        longestCycleEmplCount = max(longestCycleEmplCount, cycleLength);
+
+                        if(cycleLength == 2) {
+                            vector<bool> visitedNodes(n, false);
+                            visitedNodes[currNode] = true;
+                            visitedNodes[nextNode] = true;
+                            happyCoupleEmplCount += 2 + BFS(currNode, adj, visitedNodes) + BFS(nextNode, adj, visitedNodes);
                         }
                         break;
                     }
-                    current = nextPerson;
+                    currNode = nextNode;
                 }
             }
         }
 
-        return max(longestCycle, twoCycleInvitations);
+        return max(happyCoupleEmplCount, longestCycleEmplCount);
+
     }
 };
