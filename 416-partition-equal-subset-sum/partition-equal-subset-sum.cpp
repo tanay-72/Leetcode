@@ -1,27 +1,20 @@
 class Solution {
 public:
-    int dp[201][20001];
-    bool solve(vector<int> &nums , int idx , int currsum , int reqsum){
-        if(idx == nums.size()) {
-            return 2*currsum == reqsum;
-        }
-        if(2*currsum == reqsum) return true;
-
-        if(dp[idx][currsum] != -1) return dp[idx][currsum] ;
-        // take ;
-        bool take = solve(nums , idx + 1 , currsum + nums[idx] , reqsum);
-
-        // skip
-        bool skip = solve(nums , idx + 1 , currsum , reqsum);
-
-        return dp[idx][currsum] = take || skip ; 
-    }
     bool canPartition(vector<int>& nums) {
-        int sum = 0 ;
-        int n = nums.size(); 
-        for(int i = 0 ; i < n ; i++) sum += nums[i];
-        if(sum % 2 == 1) return false ;
-        memset(dp,-1,sizeof(dp));
-        return solve(nums , 0 , 0 , sum);
+        int sum = accumulate(nums.begin(), nums.end(), 0);
+        if(sum & 1) return false;
+        int target = sum / 2;
+        int n = nums.size();
+        vector<vector<bool>> dp(n + 1, vector<bool>(target + 1, false));
+        dp[n][target] = true;
+        for(int idx = n - 1; idx >= 0; idx--) {
+            for(int currsum = target; currsum >= 0; currsum--) {
+                bool skip = dp[idx + 1][currsum];
+                bool take = false;
+                if(currsum + nums[idx] <= target) take = dp[idx + 1][currsum + nums[idx]];
+                dp[idx][currsum] = take || skip;
+            }
+        }
+        return dp[0][0];
     }
 };
